@@ -6,8 +6,9 @@ var VSHADER_SOURCE, FSHADER_SOURCE;
 
 VSHADER_SOURCE = 
   'attribute vec4 a_Position;\n' +
+  'uniform mat4 u_ModelMatrix;' +
   'void main () {\n' +
-    'gl_Position = a_Position;\n' +
+    'gl_Position = u_ModelMatrix * a_Position;\n' +
   '}\n'
 ;
 
@@ -47,10 +48,19 @@ if ( !gl.getProgramParameter( program, gl.LINK_STATUS) ) {
 gl.useProgram(program);
 gl.program = program;
 
+var currentAngle = 0;
+var g_last = Date.now();
+var tick = function() {
+  // update the new rotation angle
+  animate();
+  draw();
+  requestAnimationFrame(tick);
+};
+
 function initVertexBuffers(gl) {
   // 绘制三角形核心代码，以下数字分别代表3个顶点
   var vertices = new Float32Array([
-    -1, 1, -1, -1, 1, -1
+    0, 0.5, -0.5, -0.5, 0.5, -0.5
   ]);
   var n = 3;
   var vertexBuffer = gl.createBuffer();
@@ -70,10 +80,22 @@ var n = initVertexBuffers(gl);
 
 gl.clearColor(0, 0, 0, 0.1);
 
+var u_ModelMatrix = gl.getUniformLocation(gl.program, 'u_ModelMatrix');
+var modelMatrix = new Matrix4();
+
+function animate() {
+  var now = Date.now();
+  var duration = now - g_last;
+  g_last = now;
+  currentAngle = currentAngle + duration / 1000 * 180;
+}
+
 function draw() {
   // clear canvas and add background color
+  modelMatrix.setRotate(currentAngle, 0, 0, 1);
+  gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
   gl.clear(gl.COLOR_BUFFER_BIT);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 }
 
-draw();
+tick();
